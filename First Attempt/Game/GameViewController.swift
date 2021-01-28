@@ -92,12 +92,6 @@ class GameViewController: UIViewController {
     var hasStarted: Bool = false
     var didMissionFinish = false
     
-    typealias SpawnBundle = (model: ModelEntity, position: Position, map: Int)
-    typealias PlacingBundle = (model: ModelEntity, position: Position, towerId: UInt64?)
-    typealias UnitBundle = (hpBarId: UInt64, hp: Float, maxHP: Float)
-    typealias CreepBundle = (unit: UnitBundle, type: CreepType, animation: AnimationPlaybackController?, subscription: Cancellable?)
-    typealias TroopBundle = (unit: UnitBundle, towerId: UInt64, enemiesIds: [UInt64])
-    typealias BulletBundle = (model: ModelEntity, animation: AnimationPlaybackController, subscription: Cancellable?)
     var spawnPlaces = [SpawnBundle]()
     var glyphs = [UInt64: ModelEntity]()
     var usedGlyphs = [UInt64]()
@@ -342,7 +336,7 @@ class GameViewController: UIViewController {
                 let creepHPbar = self.mapTemplates[Lifepoints.full.key]!.clone(recursive: true)
                 creep.model.addChild(creepHPbar)
                 creepHPbar.position.y = (bounds.extents.y / 2) + 0.003
-                self.creeps[creep.model.id] = ((creepHPbar.id, creepType.maxHP, creepType.maxHP), creepType, nil, nil)
+                self.creeps[creep.model.id] = CreepBundle(unit: UnitBundle(hpBarId: creepHPbar.id, hp: creepType.maxHP, maxHP: creepType.maxHP), type: creepType)
                 creep.entity.playAnimation(creep.entity.availableAnimations[0].repeat())
                 self.deployUnit(creep.model, type: creepType,speed: creepType.speed, on: paths[self.waveCount % paths.count], setScale: 10)
             }
@@ -495,16 +489,16 @@ class GameViewController: UIViewController {
                     let bounds = placing.entity.visualBounds(relativeTo: placing.model)
                     placing.model.collision = CollisionComponent(shapes: [ShapeResource.generateBox(size: bounds.extents).offsetBy(translation: bounds.center)])
                     anchor.addChild(placing.model)
-                    placings[placing.model.id] = (placing.model, (row,column), nil)
+                    placings[placing.model.id] = PlacingBundle(model: placing.model, position: (row,column))
                 case .higherPlacing:
                     let placing = mapTemplates[ModelType.towerPlacing.key]!.embeddedModel(at: [x, 0.102, z])
                     let bounds = placing.entity.visualBounds(relativeTo: placing.model)
                     placing.model.collision = CollisionComponent(shapes: [ShapeResource.generateBox(size: bounds.extents).offsetBy(translation: bounds.center)])
                     anchor.addChild(placing.model)
-                    placings[placing.model.id] = (placing.model, (row,column), nil)
+                    placings[placing.model.id] = PlacingBundle(model: placing.model, position: (row,column))
                 case .spawn:
                     let station = mapTemplates[ModelType.spawnPort.key]!.embeddedModel(at: [x, 0.001, z])
-                    spawnPlaces.append((station.model, (row, column), usedMaps))
+                    spawnPlaces.append(SpawnBundle(model: station.model, position: (row, column), map: usedMaps))
                     anchor.addChild(station.model)
                 }
             }
@@ -597,7 +591,7 @@ class GameViewController: UIViewController {
                     }
                 }
                 towerSubscriptions = [beganSubs, endSubs]
-                troops[troop.model.id] = ((troopHPbar.id, towerType.maxHP(lvl: towerLvl), towerType.maxHP(lvl: towerLvl)), tower.model.id, [])
+                troops[troop.model.id] = TroopBundle(unit: UnitBundle(hpBarId: troopHPbar.id, hp: towerType.maxHP(lvl: towerLvl), maxHP: towerType.maxHP(lvl: towerLvl)), towerId: tower.model.id)
             }
             
         } else {
@@ -631,6 +625,8 @@ class GameViewController: UIViewController {
                 self.towers[towerModel.id]?.enemiesIds.append(creepModel.id)
                 let timer = Timer.scheduledTimer(withTimeInterval: TimeInterval(towerType.cadence(lvl: towerLvl)), repeats: true) { timer in
                     guard self.towers[towerModel.id]?.enemiesIds.contains(creepModel.id) ?? false else { timer.invalidate() ; return }
+                    self.towers[towerModel.id]?.fireBullet(towerId: <#T##UInt64#>, towerType: <#T##TowerType#>, towerLvl: <#T##TowerLevel#>, creepModel: <#T##ModelEntity#>, anchor: <#T##AnchorEntity#>, placingPosition: <#T##SIMD3<Float>#>, creepBundle: <#T##CreepBundle#>)
+                    
                     self.fireBullet(towerId: towerModel.id, towerType: towerType, towerLvl: towerLvl, creepModel: creepModel, anchor: anchor, placingPosition: placingPosition, creepBundle: creepBundle)
                 }
                 timer.fire()
@@ -656,75 +652,6 @@ class GameViewController: UIViewController {
         
         self.towers[towerId]?.model.setOrientation(q0, relativeTo: creep
             .anchor)
-    }
-    
-    func fireBullet(towerId: UInt64, towerType: TowerType, towerLvl: TowerLevel, creepModel: ModelEntity, anchor: AnchorEntity, placingPosition: SIMD3<Float>, creepBundle: CreepBundle) {
-        guard let enemiesCount = self.towers[towerId]?.enemiesIds.count else { return }
-        let capacity = min(enemiesCount, towerType.capacity(lvl: towerLvl))
-        
-        towers[towerId]?.enemiesIds[0..<capacity].forEach { id in
-            guard id == creepModel.id else { return }
-            let bullet = mapTemplates[ModelType.bullet.key]!.embeddedModel(at: placingPosition)
-            bullet.model.transform.translation.y += 0.015
-            anchor.addChild(bullet.model)
-            var bulletTransform = bullet.model.transform
-            bulletTransform.translation = creepModel.position
-//            bullet.model.orientation = orientato(to: creepModel)
-            let animation = bullet.model.move(to: bulletTransform, relativeTo: bullet.model.anchor, duration: 0.2, timingFunction: .linear)
-            let subscription = arView.scene.publisher(for: AnimationEvents.PlaybackCompleted.self)
-                .filter { $0.playbackController == animation }
-                .sink( receiveValue: { event in
-                    self.bullets.forEach { id, bulletBundle in
-                        if bulletBundle.animation.isComplete {
-                            bulletBundle.subscription?.cancel()
-                            self.bullets.removeValue(forKey: id)
-                        }
-                    }
-                    self.bullets[bullet.model.id]?.model.removeFromParent()
-                    self.damageCreep(creepModel: creepModel, towerId: towerId, attack: towerType.attack(lvl: towerLvl))
-                })
-            self.bullets[bullet.model.id] = (bullet.model, animation,subscription)
-        }
-    }
-    
-    func damageTroop(troopModel: ModelEntity, creepId: UInt64, attack: Float) {
-        guard let troopBundle = troops[troopModel.id], let (childIndex, child) = troopModel.children.enumerated().first(where: { $1.id == troops[troopModel.id]?.unit.hpBarId }) else { return }
-        troops[troopModel.id]?.unit.hp -= attack
-        if troopBundle.unit.hp < 0 {
-            creeps[creepId]?.animation?.resume()
-            troopModel.removeFromParent()
-            troops[troopModel.id]?.enemiesIds.removeAll()
-            troops.removeValue(forKey: troopModel.id)
-        }
-        let hpPercentage = troopBundle.unit.hp / troopBundle.unit.maxHP
-        let hpBar = mapTemplates[Lifepoints.status(hp: hpPercentage).key]!.clone(recursive: true)
-        hpBar.scale = [hpPercentage, 1.0, 1.0]
-        troopModel.children[childIndex] = hpBar
-        hpBar.position = child.position
-        child.removeFromParent()
-        troops[troopModel.id]?.unit.hpBarId = hpBar.id
-    }
-    
-    func damageCreep(creepModel: ModelEntity, towerId: UInt64, attack: Float) {
-        guard let creepBundle = creeps[creepModel.id], let (childIndex, child) = creepModel.children.enumerated().first(where: { $1.id == creeps[creepModel.id]?.unit.hpBarId }) else { return }
-        creeps[creepModel.id]?.unit.hp -= attack
-        if creepBundle.unit.hp < 0 {
-            coins += creepBundle.type.reward
-            towers[towerId]?.enemiesIds.removeAll(where: { id in id == creepModel.id })
-            troops[towerId]?.enemiesIds.removeAll(where: { id in id == creepModel.id })
-            creepModel.removeFromParent()
-            creeps.removeValue(forKey: creepModel.id)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.checkMissionCompleted()
-            }
-        }
-        let hpPercentage = creepBundle.unit.hp / creepBundle.unit.maxHP
-        let hpBar = mapTemplates[Lifepoints.status(hp: hpPercentage).key]!.clone(recursive: true)
-        hpBar.scale = [hpPercentage, 1.0, 1.0]
-        creepModel.children[childIndex] = hpBar
-        hpBar.position = child.position
-        child.removeFromParent()
-        creeps[creepModel.id]?.unit.hpBarId = hpBar.id
     }
 }
 

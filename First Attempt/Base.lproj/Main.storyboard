@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="16097.2" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="17506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="16087"/>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="17505"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -301,7 +303,8 @@
                                 </constraints>
                             </view>
                         </subviews>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
+                        <viewLayoutGuide key="safeArea" id="coy-Dq-66T"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="xlC-RS-bHY" firstAttribute="top" secondItem="coy-Dq-66T" secondAttribute="top" constant="16" id="AGW-dS-sRS"/>
                             <constraint firstItem="coy-Dq-66T" firstAttribute="trailing" secondItem="joF-zS-uBv" secondAttribute="trailing" constant="16" id="AZi-ST-1mv"/>
@@ -319,7 +322,6 @@
                             <constraint firstItem="joF-zS-uBv" firstAttribute="top" secondItem="coy-Dq-66T" secondAttribute="top" constant="64" id="pJS-Bw-pwx"/>
                             <constraint firstAttribute="trailing" secondItem="5Bl-IE-Y6f" secondAttribute="trailing" id="vvV-nL-Wyz"/>
                         </constraints>
-                        <viewLayoutGuide key="safeArea" id="coy-Dq-66T"/>
                     </view>
                     <navigationItem key="navigationItem" id="bn0-tV-1DJ"/>
                     <connections>
@@ -383,6 +385,7 @@
                                 </prototypes>
                             </tableView>
                         </subviews>
+                        <viewLayoutGuide key="safeArea" id="xGV-e2-LSk"/>
                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
                             <constraint firstAttribute="bottom" secondItem="fC0-x6-ums" secondAttribute="bottom" id="25u-Ib-seo"/>
@@ -390,7 +393,6 @@
                             <constraint firstItem="fC0-x6-ums" firstAttribute="leading" secondItem="2xo-vX-ara" secondAttribute="leading" id="dIf-dF-Th2"/>
                             <constraint firstItem="fC0-x6-ums" firstAttribute="top" secondItem="2xo-vX-ara" secondAttribute="top" id="mC2-fr-PhM"/>
                         </constraints>
-                        <viewLayoutGuide key="safeArea" id="xGV-e2-LSk"/>
                     </view>
                     <connections>
                         <outlet property="tableView" destination="fC0-x6-ums" id="wCu-26-Qso"/>
@@ -407,5 +409,8 @@
         <image name="heart" width="2400" height="2400"/>
         <image name="monster" width="389" height="390"/>
         <image name="turret" width="1024" height="1024"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
     </resources>
 </document>
